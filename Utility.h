@@ -25,6 +25,7 @@
 
 #define DEBUG 1
 #define VERBOSE 0
+#define PRINTLINE() {fprintf(stderr,"**************************************************\n");}
 
 #ifndef NULL
 #define NULL 0

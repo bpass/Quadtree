@@ -11,6 +11,10 @@
 
 using namespace std;
 
+/****************************************
+ * 				CONSTRUCTORS
+ ****************************************/
+
 Quadtree::Quadtree(Quadtree* p,
                         float** mdata,
                         int mx,
@@ -124,8 +128,47 @@ Quadtree* Quadtree::constructTree(float** data,int width,int height){
     return new Quadtree(NULL,data,0,0,width,height,0,nlevels);
 }
 
+/****************************************
+ * 				METHODS
+ ****************************************/
+
+/*
+ * X Y Width Height Value Level
+ */
 bool Quadtree::SaveNodeInfo(string fname){
 
+
+
+	/*
+	 * THIS IS THE LEAF VERSION
+	 */
+    remove(fname.c_str());
+    ofstream outFile;
+    outFile.open(fname.c_str(),ios::app);
+    if(outFile.fail()){
+        cerr << "Failed to open output file \"" << fname << "\"\n";
+        return false;
+    }
+
+    outFile << "NODEFILE" << endl;
+    outFile <<  leaves << " " <<
+                width << " " <<
+                height << " " <<
+                endl;
+
+    outFile.close();
+
+    NW->SaveSubtree(fname);
+    SW->SaveSubtree(fname);
+    SE->SaveSubtree(fname);
+    NE->SaveSubtree(fname);
+
+    return true;
+
+    /*
+     * THIS IS THE NODE VERSION
+     */
+    /*
     remove(fname.c_str());
     ofstream outFile;
     outFile.open(fname.c_str(),ios::app);
@@ -140,12 +183,12 @@ bool Quadtree::SaveNodeInfo(string fname){
                 height << " " <<
                 endl;
 
-    outFile << setw(5) << x << " " <<
-               setw(5) << y << " " <<
-               setw(5) << width << " " <<
-               setw(5) << height << " " <<
-               setw(5) << value  << " " <<
-               setw(5) << level <<
+    outFile << x << " " <<
+               y << " " <<
+               width << " " <<
+               height << " " <<
+               value  << " " <<
+               level <<
                endl;
 
     outFile.close();
@@ -156,29 +199,60 @@ bool Quadtree::SaveNodeInfo(string fname){
     NE->SaveSubtree(fname);
 
     return true;
+    */
 }
 
 void Quadtree::SaveSubtree(string fname){
-    ofstream outFile;
-    outFile.open(fname.c_str(),ios::app);
-    if(outFile.fail()){
-        cerr << "Failed to open output file\n";
-        return;
-    }
 
-    outFile << setw(5) << x << " " <<
-               setw(5) << y << " " <<
-               setw(5) << width << " " <<
-               setw(5) << height << " " <<
-               setw(5) << value  << " " <<
-               setw(5) << level <<
-               endl;
-    outFile.close();
+	/*
+	 * LEAF VERSION
+	 */
+	if(value != emptyValue){
+		ofstream outFile;
+		outFile.open(fname.c_str(),ios::app);
+		if(outFile.fail()){
+			cerr << "Failed to open output file\n";
+			return;
+		}
+		outFile << x << " " <<
+				   y << " " <<
+				   width << " " <<
+				   height << " " <<
+				   value  <<
+				   endl;
+		outFile.close();
+	}
 
     if(NW) NW->SaveSubtree(fname);
     if(SW) SW->SaveSubtree(fname);
     if(SE) SE->SaveSubtree(fname);
     if(NE) NE->SaveSubtree(fname);
+
+
+    /*
+     * NODE VERSION
+     */
+    /*
+	ofstream outFile;
+	outFile.open(fname.c_str(),ios::app);
+	if(outFile.fail()){
+		cerr << "Failed to open output file\n";
+		return;
+	}
+	outFile << x << " " <<
+			   y << " " <<
+			   width << " " <<
+			   height << " " <<
+			   value  << " " <<
+			   level <<
+			   endl;
+	outFile.close();
+
+    if(NW) NW->SaveSubtree(fname);
+    if(SW) SW->SaveSubtree(fname);
+    if(SE) SE->SaveSubtree(fname);
+    if(NE) NE->SaveSubtree(fname);
+    */
 }
 
 QT_ERR Quadtree::Prune(){

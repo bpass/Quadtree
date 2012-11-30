@@ -86,4 +86,6 @@ float** reclassify(float**,int,int);
  */
 QT_ERR createImage(GDALDataset*,float**,int,int,string);
 
+int EncodeMorton2(int x, int y);
+
 #endif /* MAIN_H_ */

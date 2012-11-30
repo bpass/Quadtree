@@ -14,17 +14,18 @@
  */
 int main(){
 
-    string 			inimgfn = "subset_3_utm2.img";
-    string 			outimgreclassfn = "reclassified_image1.img";
-    string 			outimgprunefn = "reclassified_image2.img";
-    string 			originalnodefn = "original_nodes.txt";
-    string 			reclassnodefn = "reclass_nodes.txt";
+	string			inimgfn = "Images\/nlcd_2006.img";
+    //string 			inimgfn = "Images\/subset_3_utm2.img";
+    string 			outimgreclassfn = "Results\/reclassified_image1.img";
+    string 			outimgprunefn = "Results\/reclassified_image2.img";
+    string 			originalnodefn = "Results\/original_nodes.txt";
+    string 			reclassnodefn = "Results\/reclass_nodes.txt";
 
     Quadtree*     	original_tree;
     Quadtree*    	reclass_tree;
     float**     	raster_data;
     int         	xsize=0;
-    int         	ysize=0;
+    int         	ysize= 0;
 
     emptyValue = 0;
 
@@ -40,13 +41,16 @@ int main(){
 
      xsize = dataIn->GetRasterXSize();
      ysize = dataIn->GetRasterYSize();
+     fprintf(stderr,"X: %d Y: %d\n",xsize,ysize);
 
      fprintf(stderr,"Reading image...\n");
      raster_data = readImage(dataIn);
      assert(raster_data!=NULL);
 
-     fprintf(stderr,"Outputting image read as testimg1.img...\n");
-     createImage(dataIn,raster_data,xsize,ysize,"testimg1.img");
+     PRINTLINE();
+     fprintf(stderr,"Outputting image read as Results\/testimg1.img...\n");
+     PRINTLINE();
+     createImage(dataIn,raster_data,xsize,ysize,"Results\/testimg1.img");
 
      fprintf(stderr,"Building tree...\n");
      original_tree = Quadtree::constructTree(raster_data,xsize,ysize);
@@ -58,8 +62,10 @@ int main(){
      fprintf(stderr,"Verifying tree covers entire image...\n");
      assert(original_tree->VerifyCoverage());
 
+     PRINTLINE();
      fprintf(stderr,"Original Nodes: %d\n",original_tree->NodeCount());
      fprintf(stderr,"Original Leaves: %d\n",original_tree->LeafCount());
+     PRINTLINE();
 
      fprintf(stderr,"Saving node information to %s...\n",originalnodefn.c_str());
      original_tree->SaveNodeInfo(originalnodefn);
@@ -67,14 +73,18 @@ int main(){
      fprintf(stderr,"Rebuilding image from the tree...\n");
      float** newimg2 = original_tree->RebuildImage();
 
-     fprintf(stderr,"Outputting image created as testimg2.img...\n");
-     createImage(dataIn,newimg2,xsize,ysize,"testimg2.img");
+     PRINTLINE();
+     fprintf(stderr,"Outputting image created as Results\/testimg2.img...\n");
+     PRINTLINE();
+     createImage(dataIn,newimg2,xsize,ysize,"Results\/testimg2.img");
 
      fprintf(stderr,"Pruning tree...\n");
      original_tree->Prune();
 
-     fprintf(stderr,"Pruned Nodes: %d\n",original_tree->NodeCount());
-     fprintf(stderr,"Pruned Leaves: %d\n",original_tree->LeafCount());
+     PRINTLINE();
+     fprintf(stderr,"Saving pruned node info to Results\/pruned_nodes.txt\n");
+     PRINTLINE();
+     original_tree->SaveNodeInfo("Results\/pruned_nodes.txt");
 
      fprintf(stderr,"Updating node count...\n");
      original_tree->Update();
@@ -82,27 +92,26 @@ int main(){
      fprintf(stderr,"Pruned Nodes: %d\n",original_tree->NodeCount());
      fprintf(stderr,"Pruned Leaves: %d\n",original_tree->LeafCount());
 
-     fprintf(stderr,"Rebuilding Image...\n");
+     fprintf(stderr,"Rebuilding image from quadtree...\n");
      float** newimg = original_tree->RebuildImage();
 
-     fprintf(stderr,"Creating Image...\n");
-     createImage(dataIn,newimg,xsize,ysize,"testimg_withprune.img");
-
-     fprintf(stderr,"Reading node file...\n");
-     exit(1);
-     float** original_nodes = readNodeFile(originalnodefn);
+     PRINTLINE();
+     fprintf(stderr,"Creating rebuilt image as Results\/testimg3.img...\n");
+     PRINTLINE();
+     createImage(dataIn,newimg,xsize,ysize,"Results\/testimg3.img");
 
 
      /* Reclassified tree part */
-     cerr << "Reclassifying data... \n";
-     //float** reclass_data = reclassify(raster_data,xsize,ysize);
+     fprintf(stderr,"Reading node file \"%s\"...\n",originalnodefn.c_str());
+     float** original_nodes = readNodeFile(originalnodefn);
 
-     cerr << "Reclassifying image... \n";
-     original_nodes = reclassify(raster_data,xsize,ysize);
-
-     cerr << "Creating reclassified quadtree... \n";
+     fprintf(stderr,"Creating reclassified quadtree... \n");
      reclass_tree = Quadtree::constructTree(original_nodes,xsize,ysize);
 
+     fprintf(stderr,"Creating GDAL image of reclassified data to %s... \n",outimgreclassfn.c_str());
+     createImage(dataIn,original_nodes,xsize,ysize,outimgreclassfn);
+
+     exit(1);
      cerr << "Saving reclassified quadtree... \n";
      reclass_tree->SaveNodeInfo(reclassnodefn);
 
@@ -162,17 +171,19 @@ void print2DImage(float** img,int w,int h){
     }
 }
 
+/*
+ * X Y Width Height Value Level
+ */
 float** readNodeFile(string filename){
     ifstream in;
     in.open(filename.c_str());
     if(in.fail()){
-        cerr << "Failed to open input file \"" << filename << "\"\n";
+    	fprintf(stderr, "Failed to open input file\"%s\"\n",filename.c_str());
         return NULL;
     }
 
     string r;
     int i,j,x,y,numNodes,xsize,ysize;
-
 
     getline(in,r);
     istringstream row(r);
@@ -186,10 +197,12 @@ float** readNodeFile(string filename){
     istringstream row2(r);
     row2 >> numNodes >> xsize >> ysize;
 
+    fprintf(stderr,"Nodes: %d X: %d Y: %d\n",numNodes,xsize,ysize);
+
     Node nodeArr[numNodes];
     int** nodes = new int*[numNodes];
     for(i=0;i<numNodes;i++)
-        nodes[i]=new int[6];
+        nodes[i]=new int[5];
 
     float** img = new float*[xsize];
     for(i=0;i<xsize;i++)
@@ -199,7 +212,7 @@ float** readNodeFile(string filename){
     {
         getline(in,r);
         stringstream row(r);
-        for(j=0;j<6;j++)
+        for(j=0;j<5;j++)
             row >> nodes[i][j];
 
         Node a = {nodes[i][0],nodes[i][1],nodes[i][2],
@@ -208,19 +221,7 @@ float** readNodeFile(string filename){
 
         for(x=nodes[i][0];x<nodes[i][0]+nodes[i][2];x++)
             for(y=nodes[i][1];y<nodes[i][1]+nodes[i][3];y++)
-                if(nodes[i][4]!=emptyValue) img[x][y]=nodes[i][4];
-    }
-
-    sortNodes(nodeArr,0,numNodes-1);
-
-    int nlevels = nodeArr[numNodes-1].level;
-
-    for(j=0;j<=nlevels;j++){
-        if(VERBOSE) cout << "Level " << j << ":  ";
-        for(i=0;i<numNodes;i++)
-            if(nodeArr[i].level==j)
-                if(VERBOSE) cout << setw(5) << nodeArr[i].value;
-        if(VERBOSE) cout << endl;
+                img[x][y]=nodes[i][4];
     }
 
     for(i=0;i<numNodes;i++) delete [] nodes[i];
@@ -338,16 +339,6 @@ float** reclassify(float** img,int w, int h){
     return img;
 }
 
-void printNodeInfo(Node n){
-    cout << "Node:\n\t X: " << n.x
-            << " Y: " << n.y
-            << " W: " << n.width
-            << " H: " << n.height
-            << " Value: " << n.value
-            << " Level: " << n.level
-            << endl;
-}
-
 void printGDALDatasetInfo(GDALDataset* gdalData){
 
     double originalGeoTransform[6];
@@ -399,25 +390,43 @@ void printGDALRasterInfo(GDALRasterBand* poBand){
                poBand->GetColorTable()->GetColorEntryCount() );
 }
 
-void sortNodes(Node arr[], int left, int right) {
-      int i = left, j = right;
-      Node tmp;
-      int pivot = arr[(left + right) / 2].level;
-      while (i <= j) {
-            while (arr[i].level < pivot) i++;
-            while (arr[j].level > pivot) j--;
-            if (i <= j) {
-                  tmp = arr[i];
-                  arr[i] = arr[j];
-                  arr[j] = tmp;
-                  i++; j--;
-            }
-      };
-
-      if (left < j) sortNodes(arr, left, j);
-      if (i < right) sortNodes(arr, i, right);
+int Compact1By1(int x)
+{
+  x &= 0x55555555;                  // x = -f-e -d-c -b-a -9-8 -7-6 -5-4 -3-2 -1-0
+  x = (x ^ (x >>  1)) & 0x33333333; // x = --fe --dc --ba --98 --76 --54 --32 --10
+  x = (x ^ (x >>  2)) & 0x0f0f0f0f; // x = ---- fedc ---- ba98 ---- 7654 ---- 3210
+  x = (x ^ (x >>  4)) & 0x00ff00ff; // x = ---- ---- fedc ba98 ---- ---- 7654 3210
+  x = (x ^ (x >>  8)) & 0x0000ffff; // x = ---- ---- ---- ---- fedc ba98 7654 3210
+  return x;
 }
 
+int DecodeMorton2X(int code)
+{
+  return Compact1By1(code >> 0);
+}
+
+int DecodeMorton2Y(int code)
+{
+  return Compact1By1(code >> 1);
+}
+
+// "Insert" a 0 bit after each of the 16 low bits of x
+int Part1By1(int x)
+{
+  x &= 0x0000ffff;                  // x = ---- ---- ---- ---- fedc ba98 7654 3210
+  x = (x ^ (x <<  8)) & 0x00ff00ff; // x = ---- ---- fedc ba98 ---- ---- 7654 3210
+  x = (x ^ (x <<  4)) & 0x0f0f0f0f; // x = ---- fedc ---- ba98 ---- 7654 ---- 3210
+  x = (x ^ (x <<  2)) & 0x33333333; // x = --fe --dc --ba --98 --76 --54 --32 --10
+  x = (x ^ (x <<  1)) & 0x55555555; // x = -f-e -d-c -b-a -9-8 -7-6 -5-4 -3-2 -1-0
+  return x;
+}
+
+int EncodeMorton2(int x, int y)
+{
+  return (Part1By1(y) << 1) + Part1By1(x);
+}
+
+///TODO: Fix
 QT_ERR DrawTree(Quadtree* tree){
 
     ofstream out;
