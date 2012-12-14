@@ -1,5 +1,4 @@
 #include "main.h"
-#include "assert.h"
 
 /***********************************************************
  *
@@ -9,134 +8,135 @@
  *
  ***********************************************************/
 
+
+	string			inimgfn = "Images\/nlcd_2006.img";
+	//string 			inimgfn = "Images\/subset_3_utm2.img";
+    string 			outimgreclassfn = "Results\/reclassified_image1.img";
+    string 			outimgprunefn = "Results\/reclassified_image2.img";
+    string 			originalnodefn = "Results\/original_nodes.txt";
+    string 			reclassnodefn = "Results\/reclass_nodes.txt";
+    GDALDataset* 	dataIn;
+    GDALColorTable*	colorTable;
+    Quadtree*     	original_tree;
+    Quadtree*    	reclass_tree;
+    float**     	raster_data;
+    int         	xsize = 0;
+    int         	ysize = 0;
+
+    /* TIMING STUFF */
+    timeval stop, start;
+    long times[] = {0,0,0,0,0,0};
+    long temp = 0;
+
 /**
  * \brief This is the main function that creates a quadtree.
  */
 int main(){
 
-	string			inimgfn = "Images\/nlcd_2006.img";
-    //string 			inimgfn = "Images\/subset_3_utm2.img";
-    string 			outimgreclassfn = "Results\/reclassified_image1.img";
-    string 			outimgprunefn = "Results\/reclassified_image2.img";
-    string 			originalnodefn = "Results\/original_nodes.txt";
-    string 			reclassnodefn = "Results\/reclass_nodes.txt";
+	emptyValue = 0;
 
-    Quadtree*     	original_tree;
-    Quadtree*    	reclass_tree;
-    float**     	raster_data;
-    int         	xsize=0;
-    int         	ysize= 0;
+	/* Original tree part */
+	fprintf(stderr,"Opening image from file \"%s\"...\n",inimgfn.c_str());
+	initialize();
+	colorTable = dataIn->GetRasterBand(1)->GetColorTable();
+	fprintf(stderr,"Reading image...\n");
+	gettimeofday(&start, NULL);
+	raster_data = readImage(dataIn);
+	gettimeofday(&stop, NULL);
+	temp = stop.tv_usec - start.tv_usec;
+	if(temp < 0) temp = 1000000 - temp;
+	times[0] += temp;
+	fprintf(stderr,"Reading took %i microseconds\n",temp);
+	assert(raster_data!=NULL);
 
-    emptyValue = 0;
+	PRINTLINE();
+	fprintf(stderr,"Outputting image read as Results\/testimg1.img...\n");
+	PRINTLINE();
+	createImage(dataIn,raster_data,xsize,ysize,"Results\/testimg1.img");
 
-    initialize();
+	fprintf(stderr,"Building tree...\n");
+	gettimeofday(&start, NULL);
+	original_tree = Quadtree::constructTree(raster_data,xsize,ysize);
+	gettimeofday(&stop, NULL);
 
-     /* Original tree part */
-     cerr << "Opening image...\n";
-     GDALDataset* dataIn = (GDALDataset *) GDALOpen( inimgfn.c_str(), GA_ReadOnly );
-     if(!dataIn){
-         cerr << "Error: Opening image \"" << inimgfn.c_str() << "\", leaving program\n";
-         return 0;
-     }
+	temp = stop.tv_usec - start.tv_usec;
+	if(temp < 0) temp = 1000000 - temp;
+	times[1]+=temp;
+	fprintf(stderr,"constructing took %i microseconds\n",temp);
+	assert(original_tree!=NULL);
 
-     xsize = dataIn->GetRasterXSize();
-     ysize = dataIn->GetRasterYSize();
-     fprintf(stderr,"X: %d Y: %d\n",xsize,ysize);
+	PRINTLINE();
+	fprintf(stderr,"Original Nodes: %d\n",original_tree->NodeCount());
+	fprintf(stderr,"Original Leaves: %d\n",original_tree->LeafCount());
+	PRINTLINE();
 
-     fprintf(stderr,"Reading image...\n");
-     raster_data = readImage(dataIn);
-     assert(raster_data!=NULL);
+	fprintf(stderr,"Saving node information to %s...\n",originalnodefn.c_str());
+	original_tree->SaveNodeInfo(originalnodefn);
 
-     PRINTLINE();
-     fprintf(stderr,"Outputting image read as Results\/testimg1.img...\n");
-     PRINTLINE();
-     createImage(dataIn,raster_data,xsize,ysize,"Results\/testimg1.img");
+	fprintf(stderr,"Rebuilding image from the tree...\n");
+	float** newimg2 = original_tree->RebuildImage();
 
-     fprintf(stderr,"Building tree...\n");
-     original_tree = Quadtree::constructTree(raster_data,xsize,ysize);
-     assert(original_tree!=NULL);
+	PRINTLINE();
+	fprintf(stderr,"Outputting image created as Results\/testimg2.img...\n");
+	PRINTLINE();
+	createImage(dataIn,newimg2,xsize,ysize,"Results\/testimg2.img");
 
-     fprintf(stderr, "Verifying tree structure...\n");
-     assert(original_tree->VerifyTree()==NO_ERROR);
+	fprintf(stderr,"Pruning tree...\n");
+	gettimeofday(&start, NULL);
+	original_tree->Prune();
+	gettimeofday(&stop, NULL);
 
-     fprintf(stderr,"Verifying tree covers entire image...\n");
-     assert(original_tree->VerifyCoverage());
+	temp = stop.tv_usec - start.tv_usec;
+	  if(temp < 0) temp = 1000000 - temp;
+	times[2]+= temp;
+	fprintf(stderr,"pruning took %i microseconds\n",temp);
 
-     PRINTLINE();
-     fprintf(stderr,"Original Nodes: %d\n",original_tree->NodeCount());
-     fprintf(stderr,"Original Leaves: %d\n",original_tree->LeafCount());
-     PRINTLINE();
+	PRINTLINE();
+	fprintf(stderr,"Saving pruned node info to Results\/pruned_nodes.txt\n");
+	PRINTLINE();
+	original_tree->SaveNodeInfo("Results\/pruned_nodes.txt");
 
-     fprintf(stderr,"Saving node information to %s...\n",originalnodefn.c_str());
-     original_tree->SaveNodeInfo(originalnodefn);
+	fprintf(stderr,"Updating node count...\n");
+	original_tree->Update();
 
-     fprintf(stderr,"Rebuilding image from the tree...\n");
-     float** newimg2 = original_tree->RebuildImage();
+	fprintf(stderr,"Pruned Nodes: %d\n",original_tree->NodeCount());
+	fprintf(stderr,"Pruned Leaves: %d\n",original_tree->LeafCount());
 
-     PRINTLINE();
-     fprintf(stderr,"Outputting image created as Results\/testimg2.img...\n");
-     PRINTLINE();
-     createImage(dataIn,newimg2,xsize,ysize,"Results\/testimg2.img");
+	fprintf(stderr,"Rebuilding image from quadtree...\n");
 
-     fprintf(stderr,"Pruning tree...\n");
-     original_tree->Prune();
+	gettimeofday(&start,NULL);
+	float** newimg = original_tree->RebuildImage();
+	gettimeofday(&stop, NULL);
 
-     PRINTLINE();
-     fprintf(stderr,"Saving pruned node info to Results\/pruned_nodes.txt\n");
-     PRINTLINE();
-     original_tree->SaveNodeInfo("Results\/pruned_nodes.txt");
+	temp = stop.tv_usec - start.tv_usec;
+	  if(temp < 0) temp = 1000000 - temp;
+	times[3]+=temp;
+	fprintf(stderr,"Rebuilding took %i microseconds\n",temp);
 
-     fprintf(stderr,"Updating node count...\n");
-     original_tree->Update();
+	PRINTLINE();
+	fprintf(stderr,"Creating rebuilt image as Results\/testimg3.img...\n");
+	PRINTLINE();
+	gettimeofday(&start,NULL);
+	createImage(dataIn,newimg,xsize,ysize,"Results\/testimg3.img");
+	gettimeofday(&stop, NULL);
 
-     fprintf(stderr,"Pruned Nodes: %d\n",original_tree->NodeCount());
-     fprintf(stderr,"Pruned Leaves: %d\n",original_tree->LeafCount());
+	temp = stop.tv_usec - start.tv_usec;
+	if(temp < 0) temp = 1000000 - temp;
+	times[4]+=temp;
+	fprintf(stderr,"output took %i microseconds\n",temp);
 
-     fprintf(stderr,"Rebuilding image from quadtree...\n");
-     float** newimg = original_tree->RebuildImage();
+	/* Reclassified tree part */
+	fprintf(stderr,"Reading node file \"%s\"...\n",originalnodefn.c_str());
+	float** original_nodes = readNodeFile(originalnodefn);
 
-     PRINTLINE();
-     fprintf(stderr,"Creating rebuilt image as Results\/testimg3.img...\n");
-     PRINTLINE();
-     createImage(dataIn,newimg,xsize,ysize,"Results\/testimg3.img");
+	fprintf(stderr,"Creating reclassified quadtree... \n");
+	reclass_tree = Quadtree::constructTree(original_nodes,xsize,ysize);
 
+	fprintf(stderr,"Creating GDAL image of reclassified data to %s... \n",outimgreclassfn.c_str());
+	createImage(dataIn,original_nodes,xsize,ysize,outimgreclassfn);
 
-     /* Reclassified tree part */
-     fprintf(stderr,"Reading node file \"%s\"...\n",originalnodefn.c_str());
-     float** original_nodes = readNodeFile(originalnodefn);
-
-     fprintf(stderr,"Creating reclassified quadtree... \n");
-     reclass_tree = Quadtree::constructTree(original_nodes,xsize,ysize);
-
-     fprintf(stderr,"Creating GDAL image of reclassified data to %s... \n",outimgreclassfn.c_str());
-     createImage(dataIn,original_nodes,xsize,ysize,outimgreclassfn);
-
-     exit(1);
-     cerr << "Saving reclassified quadtree... \n";
-     reclass_tree->SaveNodeInfo(reclassnodefn);
-
-     cerr << "Counting reclass nodes...\n" <<
-             reclass_tree->NodeCount() << " nodes ";
-     cerr << "Counting reclass leaves...\n" <<
-             reclass_tree->LeafCount() << " leaves ";
-
-     cerr << "Creating GDAL image of reclassified data... \n";
-     createImage(dataIn,original_nodes,xsize,ysize,"reclassified_image.img");
-
-     cerr << "Creating DOT files...";
- /*
-     if(DrawTree(fullTree) != NO_ERROR)
-     {
-         cerr << "ERROR DRAWING TREE\n";
-         return 0;
-     }
- */
-     cerr << "done\nSize decreased by "
-             << original_tree->NodeCount() - reclass_tree->NodeCount() << endl;
-
-     cerr << "done\nExiting\n";
-
-     return 1;
+	fprintf(stderr,"Done\n");
+	return 1;
 }
 
 /***********************************************************
@@ -150,25 +150,15 @@ int main(){
 void initialize(){
 
     GDALAllRegister();
-    /*
-    cout << "Enter the name of the input file: ";
-    cin >> ifname;
-    cout << "Enter the name of the output file: ";
-    cin >> ofname;
-    cout << "Enter output format: ";
-    cin >> outformat;
-    */
-    //GDALDriver* test =
-}
 
-void print2DImage(float** img,int w,int h){
-    int i,j;
-    cerr << "Image Size: " << w << "," << h << endl;
-    for(i=0;i<w;i++){
-        for(j=0;j<h;j++)
-            cerr << img[i][j] << " ";
-        cerr << endl;
+    dataIn = (GDALDataset *) GDALOpen( inimgfn.c_str(), GA_ReadOnly );
+    if(!dataIn){
+        cerr << "Error: Opening image \"" << inimgfn.c_str() << "\", leaving program\n";
+        exit(1);
     }
+
+    xsize = dataIn->GetRasterXSize();
+    ysize = dataIn->GetRasterYSize();
 }
 
 /*
@@ -183,7 +173,7 @@ float** readNodeFile(string filename){
     }
 
     string r;
-    int i,j,x,y,numNodes,xsize,ysize;
+    int i,j,x,y,numNodes,xsizelocal,ysizelocal;
 
     getline(in,r);
     istringstream row(r);
@@ -195,19 +185,23 @@ float** readNodeFile(string filename){
 
     getline(in,r);
     istringstream row2(r);
-    row2 >> numNodes >> xsize >> ysize;
+    row2 >> numNodes >> xsizelocal >> ysizelocal;
 
-    fprintf(stderr,"Nodes: %d X: %d Y: %d\n",numNodes,xsize,ysize);
+    fprintf(stderr,"Nodes: %d X: %d Y: %d\n",numNodes,xsizelocal,ysizelocal);
 
+    fprintf(stderr,"Allocating array\n");
     Node nodeArr[numNodes];
     int** nodes = new int*[numNodes];
     for(i=0;i<numNodes;i++)
         nodes[i]=new int[5];
 
-    float** img = new float*[xsize];
-    for(i=0;i<xsize;i++)
-        img[i]=new float[ysize];
+    fprintf(stderr,"Completed allocating the img array\n");
 
+    float** img = new float*[xsizelocal];
+    for(i=0;i<xsizelocal;i++)
+        img[i]=new float[ysizelocal];
+
+    fprintf(stderr,"About to enter for loop\n");
     for(i=0;i<numNodes;i++)
     {
         getline(in,r);
@@ -233,7 +227,7 @@ float** readNodeFile(string filename){
 
 float** readImage(GDALDataset* gdalData){
 
-    int i,j,xsize,ysize;
+    int i,j,x,y;
     float *pafScanline;
     float** myData;
 
@@ -243,24 +237,24 @@ float** readImage(GDALDataset* gdalData){
         return NULL;
     }
 
-    xsize = gdalBand->GetXSize();
-    ysize = gdalBand->GetYSize();
+    x = gdalBand->GetXSize();
+    y = gdalBand->GetYSize();
 
-    myData = new float*[xsize];
-    for(i=0;i<xsize;i++) myData[i] = new float[ysize];
+    myData = new float*[x];
+    for(i=0;i<x;i++) myData[i] = new float[y];
 
     pafScanline = new float[xsize*ysize];
 
-    for(i=0;i<xsize;i++)
-        for(j=0;j<ysize;j++)
+    for(i=0;i<x;i++)
+        for(j=0;j<y;j++)
             myData[i][j] = emptyValue;
 
-    gdalBand->RasterIO(GF_Read,0,0,xsize,ysize,
-            pafScanline,xsize,ysize,GDT_Float32,0,0);
+    gdalBand->RasterIO(GF_Read,0,0,x,y,
+            pafScanline,x,y,GDT_Float32,0,0);
 
-    for(j=0;j<ysize;++j)
-        for(int k=0;k<xsize;++k)
-            myData[k][j] = pafScanline[j*xsize+k];
+    for(j=0;j<y;++j)
+        for(int k=0;k<x;++k)
+            myData[k][j] = pafScanline[j*x+k];
 
     delete [] pafScanline;
 
@@ -410,7 +404,6 @@ int DecodeMorton2Y(int code)
   return Compact1By1(code >> 1);
 }
 
-// "Insert" a 0 bit after each of the 16 low bits of x
 int Part1By1(int x)
 {
   x &= 0x0000ffff;                  // x = ---- ---- ---- ---- fedc ba98 7654 3210

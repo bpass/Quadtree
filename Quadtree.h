@@ -22,7 +22,7 @@ struct Node{
     int     y; /**< The y value of the node */
     int     width; /**< The width of the area specified by the node */
     int     height; /**< The height of the area specified by the node */
-    float     value; /**< The thematic value of the are specified by the node */
+    float   value; /**< The thematic value of the are specified by the node */
     int     level; /**< The level of the quadtree in which the node appears */
 };
 
@@ -45,16 +45,7 @@ class Quadtree {
         float** RebuildImage();
         QT_ERR  DrawTree(ofstream&);
         QT_ERR  Prune();
-
         QT_ERR  VerifyTree();
-        bool	VerifyCoverage();
-
-        int count(){
-            if(value!=emptyValue){
-                return 0;
-            }
-            return 1 + NW->count() + SW->count() + NE->count() + SE->count();
-        }
 
         ~Quadtree();
 

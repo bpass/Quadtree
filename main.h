@@ -36,11 +36,6 @@ QT_ERR DrawTree(Quadtree*);
 void initialize();
 
 /**
- * \brief This function will print the inputted image
- */
-void print2DImage(float**,int,int);
-
-/**
  * \brief Prints the contents of Node n.
  */
 void printNodeInfo(Node);

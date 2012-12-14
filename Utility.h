@@ -18,10 +18,12 @@
 #include <unistd.h>
 #include <assert.h>
 #include <vector>
+#include <sys/time.h>
 #include "gdal_priv.h"
 #include "ogr_spatialref.h"
 #include "cpl_conv.h"
 #include "cpl_string.h"
+#include "assert.h"
 
 #define DEBUG 1
 #define VERBOSE 0

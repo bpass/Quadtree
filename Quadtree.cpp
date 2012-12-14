@@ -133,7 +133,7 @@ Quadtree* Quadtree::constructTree(float** data,int width,int height){
  ****************************************/
 
 /*
- * X Y Width Height Value Level
+ * X Y Width Height Value
  */
 bool Quadtree::SaveNodeInfo(string fname){
 
@@ -164,42 +164,6 @@ bool Quadtree::SaveNodeInfo(string fname){
     NE->SaveSubtree(fname);
 
     return true;
-
-    /*
-     * THIS IS THE NODE VERSION
-     */
-    /*
-    remove(fname.c_str());
-    ofstream outFile;
-    outFile.open(fname.c_str(),ios::app);
-    if(outFile.fail()){
-        cerr << "Failed to open output file \"" << fname << "\"\n";
-        return false;
-    }
-
-    outFile << "NODEFILE" << endl;
-    outFile <<  nodes << " " <<
-                width << " " <<
-                height << " " <<
-                endl;
-
-    outFile << x << " " <<
-               y << " " <<
-               width << " " <<
-               height << " " <<
-               value  << " " <<
-               level <<
-               endl;
-
-    outFile.close();
-
-    NW->SaveSubtree(fname);
-    SW->SaveSubtree(fname);
-    SE->SaveSubtree(fname);
-    NE->SaveSubtree(fname);
-
-    return true;
-    */
 }
 
 void Quadtree::SaveSubtree(string fname){
@@ -280,13 +244,13 @@ QT_ERR Quadtree::Prune(){
 		if(NE) children.push_back(NE);
 		if(SE) children.push_back(SE);
 
-		for(int i = 0; i < children.size(); i++){
+		for(uint i = 0; i < children.size(); i++){
 			if( children[i]->Prune() != NO_ERROR )
 				return TREE_ERROR;
 		}
 
 		int val = children.front()->value;
-		for(int i = 0; i < children.size(); i++){
+		for(uint i = 0; i < children.size(); i++){
 			if(children[i]->value != val){
 				return NO_ERROR;
 			}
@@ -368,22 +332,6 @@ float** Quadtree::VerifyCoverage(float** img){
                 img[i][j]=1;
     }
     return img;
-}
-
-bool Quadtree::VerifyCoverage(){
-	float** img;
-	img = new float*[width];
-	for(int i=0;i<width;i++)
-		img[i] = new float[height];
-	img = VerifyCoverage(img);
-
-	for(int i=0;i<width;i++){
-		for(int j=0;j<height;j++){
-			if(img[i][j]!=1)
-				return false;
-		}
-	}
-	return true;
 }
 
 QT_ERR Quadtree::VerifyTree(){
