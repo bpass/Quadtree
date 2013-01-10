@@ -86,6 +86,7 @@ int main(){
 	original_tree->Prune();
 	gettimeofday(&stop, NULL);
 
+
 	temp = stop.tv_usec - start.tv_usec;
 	  if(temp < 0) temp = 1000000 - temp;
 	times[2]+= temp;
