@@ -1,32 +1,23 @@
 #include "main.h"
 
-/***********************************************************
- *
- *
- * MAIN FUNCTIONS
- *
- *
- ***********************************************************/
+string			inimgfn = "Images\/nlcd_2006.img";
+//string 			inimgfn = "Images\/subset_3_utm2.img";
+string 			outimgreclassfn = "Results\/reclassified_image1.img";
+string 			outimgprunefn = "Results\/reclassified_image2.img";
+string 			originalnodefn = "Results\/original_nodes.txt";
+string 			reclassnodefn = "Results\/reclass_nodes.txt";
+GDALDataset* 	dataIn;
+GDALColorTable*	colorTable;
+Quadtree*     	original_tree;
+Quadtree*    	reclass_tree;
+float**     	raster_data;
+int         	xsize = 0;
+int         	ysize = 0;
 
-
-	string			inimgfn = "Images\/nlcd_2006.img";
-	//string 			inimgfn = "Images\/subset_3_utm2.img";
-    string 			outimgreclassfn = "Results\/reclassified_image1.img";
-    string 			outimgprunefn = "Results\/reclassified_image2.img";
-    string 			originalnodefn = "Results\/original_nodes.txt";
-    string 			reclassnodefn = "Results\/reclass_nodes.txt";
-    GDALDataset* 	dataIn;
-    GDALColorTable*	colorTable;
-    Quadtree*     	original_tree;
-    Quadtree*    	reclass_tree;
-    float**     	raster_data;
-    int         	xsize = 0;
-    int         	ysize = 0;
-
-    /* TIMING STUFF */
-    timeval stop, start;
-    long times[] = {0,0,0,0,0,0};
-    long temp = 0;
+/* TIMING STUFF */
+timeval stop, start;
+long times[] = {0,0,0,0,0,0};
+long temp = 0;
 
 /**
  * \brief This is the main function that creates a quadtree.
@@ -36,10 +27,9 @@ int main(){
 	emptyValue = 0;
 
 	/* Original tree part */
-	fprintf(stderr,"Opening image from file \"%s\"...\n",inimgfn.c_str());
+
 	initialize();
-	colorTable = dataIn->GetRasterBand(1)->GetColorTable();
-	fprintf(stderr,"Reading image...\n");
+	//colorTable = dataIn->GetRasterBand(1)->GetColorTable();
 	gettimeofday(&start, NULL);
 	raster_data = readImage(dataIn);
 	gettimeofday(&stop, NULL);
@@ -49,12 +39,8 @@ int main(){
 	fprintf(stderr,"Reading took %i microseconds\n",temp);
 	assert(raster_data!=NULL);
 
-	PRINTLINE();
-	fprintf(stderr,"Outputting image read as Results\/testimg1.img...\n");
-	PRINTLINE();
 	createImage(dataIn,raster_data,xsize,ysize,"Results\/testimg1.img");
 
-	fprintf(stderr,"Building tree...\n");
 	gettimeofday(&start, NULL);
 	original_tree = Quadtree::constructTree(raster_data,xsize,ysize);
 	gettimeofday(&stop, NULL);
@@ -70,40 +56,27 @@ int main(){
 	fprintf(stderr,"Original Leaves: %d\n",original_tree->LeafCount());
 	PRINTLINE();
 
-	fprintf(stderr,"Saving node information to %s...\n",originalnodefn.c_str());
 	original_tree->SaveNodeInfo(originalnodefn);
 
-	fprintf(stderr,"Rebuilding image from the tree...\n");
 	float** newimg2 = original_tree->RebuildImage();
 
-	PRINTLINE();
-	fprintf(stderr,"Outputting image created as Results\/testimg2.img...\n");
-	PRINTLINE();
 	createImage(dataIn,newimg2,xsize,ysize,"Results\/testimg2.img");
 
-	fprintf(stderr,"Pruning tree...\n");
 	gettimeofday(&start, NULL);
 	original_tree->Prune();
 	gettimeofday(&stop, NULL);
-
 
 	temp = stop.tv_usec - start.tv_usec;
 	  if(temp < 0) temp = 1000000 - temp;
 	times[2]+= temp;
 	fprintf(stderr,"pruning took %i microseconds\n",temp);
 
-	PRINTLINE();
-	fprintf(stderr,"Saving pruned node info to Results\/pruned_nodes.txt\n");
-	PRINTLINE();
 	original_tree->SaveNodeInfo("Results\/pruned_nodes.txt");
 
-	fprintf(stderr,"Updating node count...\n");
 	original_tree->Update();
 
 	fprintf(stderr,"Pruned Nodes: %d\n",original_tree->NodeCount());
 	fprintf(stderr,"Pruned Leaves: %d\n",original_tree->LeafCount());
-
-	fprintf(stderr,"Rebuilding image from quadtree...\n");
 
 	gettimeofday(&start,NULL);
 	float** newimg = original_tree->RebuildImage();
@@ -114,9 +87,6 @@ int main(){
 	times[3]+=temp;
 	fprintf(stderr,"Rebuilding took %i microseconds\n",temp);
 
-	PRINTLINE();
-	fprintf(stderr,"Creating rebuilt image as Results\/testimg3.img...\n");
-	PRINTLINE();
 	gettimeofday(&start,NULL);
 	createImage(dataIn,newimg,xsize,ysize,"Results\/testimg3.img");
 	gettimeofday(&stop, NULL);
@@ -127,13 +97,10 @@ int main(){
 	fprintf(stderr,"output took %i microseconds\n",temp);
 
 	/* Reclassified tree part */
-	fprintf(stderr,"Reading node file \"%s\"...\n",originalnodefn.c_str());
 	float** original_nodes = readNodeFile(originalnodefn);
 
-	fprintf(stderr,"Creating reclassified quadtree... \n");
 	reclass_tree = Quadtree::constructTree(original_nodes,xsize,ysize);
 
-	fprintf(stderr,"Creating GDAL image of reclassified data to %s... \n",outimgreclassfn.c_str());
 	createImage(dataIn,original_nodes,xsize,ysize,outimgreclassfn);
 
 	fprintf(stderr,"Done\n");
@@ -149,6 +116,8 @@ int main(){
  ***********************************************************/
 
 void initialize(){
+
+	fprintf(stderr,"Initialization\n");
 
     GDALAllRegister();
 
@@ -166,6 +135,8 @@ void initialize(){
  * X Y Width Height Value Level
  */
 float** readNodeFile(string filename){
+	fprintf(stderr,"Reading node file: %s\n",filename.c_str());
+
     ifstream in;
     in.open(filename.c_str());
     if(in.fail()){
@@ -191,10 +162,14 @@ float** readNodeFile(string filename){
     fprintf(stderr,"Nodes: %d X: %d Y: %d\n",numNodes,xsizelocal,ysizelocal);
 
     fprintf(stderr,"Allocating array\n");
+
     Node nodeArr[numNodes];
+
+    fprintf(stderr,"Made the node array\n");
     int** nodes = new int*[numNodes];
     for(i=0;i<numNodes;i++)
         nodes[i]=new int[5];
+    fprintf(stderr,"Made the 2d array\n");
 
     fprintf(stderr,"Completed allocating the img array\n");
 
@@ -227,6 +202,8 @@ float** readNodeFile(string filename){
 }
 
 float** readImage(GDALDataset* gdalData){
+
+	fprintf(stderr,"Reading image from dataset\n");
 
     int i,j,x,y;
     float *pafScanline;
@@ -264,6 +241,7 @@ float** readImage(GDALDataset* gdalData){
 
 QT_ERR createImage(GDALDataset* poSrcDS, float** data,int w,int h,string fname){
 
+	fprintf(stderr,"Creating GDAL image %s\n",fname.c_str());
     GDALDriver *gdalDriver = GetGDALDriverManager()->GetDriverByName(outformat);
     if( gdalDriver == NULL ) return READ_ERROR;
 
@@ -315,23 +293,6 @@ QT_ERR dumpToFile(float** img,int w, int h, string fname){
     }
 
     return NO_ERROR;
-}
-
-float** reclassify(float** img,int w, int h){
-    for(int i=0;i<w;i++){
-        for(int j=0;j<h;j++){
-            if(img[i][j]<=20 || img[i][j]>24)
-                img[i][j]=4;
-            else if(img[i][j]==21)
-                img[i][j]=3;
-            else if(img[i][j]==22)
-                img[i][j]=2;
-            else
-                img[i][j]=1;
-        }
-    }
-
-    return img;
 }
 
 void printGDALDatasetInfo(GDALDataset* gdalData){

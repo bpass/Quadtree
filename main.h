@@ -26,19 +26,9 @@
 using namespace std;
 
 /**
- * \brief This will create a DOT file.
- */
-QT_ERR DrawTree(Quadtree*);
-
-/**
  * \brief This will ask the user to input the necessary values.
  */
 void initialize();
-
-/**
- * \brief Prints the contents of Node n.
- */
-void printNodeInfo(Node);
 
 /**
  * \brief Prints information about the dataset.
@@ -72,15 +62,14 @@ float** readImage(GDALDataset*);
 QT_ERR dumpToFile(float**,int, int, string);
 
 /**
- * \brief Reclassifies the array.
- */
-float** reclassify(float**,int,int);
-
-/**
  * \brief Creates a GDAL supported file based on a given 2D array.
  */
 QT_ERR createImage(GDALDataset*,float**,int,int,string);
 
-int EncodeMorton2(int x, int y);
+/**
+ * \brief This will create a DOT file.
+ */
+QT_ERR DrawTree(Quadtree*);
+
 
 #endif /* MAIN_H_ */
