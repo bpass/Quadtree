@@ -56,7 +56,7 @@ int main(){
 	fprintf(stderr,"Original Leaves: %d\n",original_tree->LeafCount());
 	PRINTLINE();
 
-	original_tree->SaveNodeInfo(originalnodefn);
+	original_tree->SaveToFile(originalnodefn);
 
 	float** newimg2 = original_tree->RebuildImage();
 
@@ -71,7 +71,7 @@ int main(){
 	times[2]+= temp;
 	fprintf(stderr,"pruning took %i microseconds\n",temp);
 
-	original_tree->SaveNodeInfo("Results\/pruned_nodes.txt");
+	original_tree->SaveToFile("Results\/pruned_nodes.txt");
 
 	original_tree->Update();
 

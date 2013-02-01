@@ -36,7 +36,7 @@ class Quadtree {
 
         static Quadtree* constructTree(float**,int,int);
 
-        bool    SaveNodeInfo(string fname); /**< Prints the tree */
+        bool    SaveToFile(string fname); /**< Prints the tree */
         int     NodeCount(); /**< Counts the total amount of nodes in the tree */
         int     LeafCount(); /**< Counts the amount of leaf nodes in the tree */
         int     Value();
@@ -45,7 +45,6 @@ class Quadtree {
         float** RebuildImage();
         QT_ERR  DrawTree(ofstream&);
         QT_ERR  Prune();
-        QT_ERR  VerifyTree();
 
         ~Quadtree();
 

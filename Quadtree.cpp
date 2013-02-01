@@ -135,13 +135,8 @@ Quadtree* Quadtree::constructTree(float** data,int width,int height){
 /*
  * X Y Width Height Value
  */
-bool Quadtree::SaveNodeInfo(string fname){
+bool Quadtree::SaveToFile(string fname){
 
-
-
-	/*
-	 * THIS IS THE LEAF VERSION
-	 */
     remove(fname.c_str());
     ofstream outFile;
     outFile.open(fname.c_str(),ios::app);
@@ -168,9 +163,6 @@ bool Quadtree::SaveNodeInfo(string fname){
 
 void Quadtree::SaveSubtree(string fname){
 
-	/*
-	 * LEAF VERSION
-	 */
 	if(value != emptyValue){
 		ofstream outFile;
 		outFile.open(fname.c_str(),ios::app);
@@ -192,31 +184,6 @@ void Quadtree::SaveSubtree(string fname){
     if(SE) SE->SaveSubtree(fname);
     if(NE) NE->SaveSubtree(fname);
 
-
-    /*
-     * NODE VERSION
-     */
-    /*
-	ofstream outFile;
-	outFile.open(fname.c_str(),ios::app);
-	if(outFile.fail()){
-		cerr << "Failed to open output file\n";
-		return;
-	}
-	outFile << x << " " <<
-			   y << " " <<
-			   width << " " <<
-			   height << " " <<
-			   value  << " " <<
-			   level <<
-			   endl;
-	outFile.close();
-
-    if(NW) NW->SaveSubtree(fname);
-    if(SW) SW->SaveSubtree(fname);
-    if(SE) SE->SaveSubtree(fname);
-    if(NE) NE->SaveSubtree(fname);
-    */
 }
 
 QT_ERR Quadtree::Prune(){
@@ -317,62 +284,6 @@ float** Quadtree::RebuildImage(float** img){
                 img[i][j]=value;
     }
     return img;
-}
-
-float** Quadtree::VerifyCoverage(float** img){
-    if(value==emptyValue){
-    	if(NW) img = NW->VerifyCoverage(img);
-    	if(NE) img = NE->VerifyCoverage(img);
-    	if(SW) img = SW->VerifyCoverage(img);
-    	if(SE) img = SE->VerifyCoverage(img);
-    }
-    else{
-        for(int i=x;i<x+width;i++)
-            for(int j=y;j<y+height;j++)
-                img[i][j]=1;
-    }
-    return img;
-}
-
-QT_ERR Quadtree::VerifyTree(){
-    if(value!=emptyValue){								/* Homogeneous node */
-        if(NW || SW || SE || NE){
-            fprintf(stderr,"Error: Node has value %d but not all children are null\n",value);
-            return TREE_ERROR;
-        }
-        return NO_ERROR;
-    }
-    else{												/* Non-homogeneous node */
-        if(!NW && !SW && !SE && !NE){
-            fprintf(stderr,"Error: Node has value %d but all children are null\n",value);
-            return TREE_ERROR;
-        }
-    }
-
-    if(x < 0 || y < 0 || width<=0 || height<=0){		/* Bounds checking */
-    	fprintf(stderr,"Error: Out of bounds dimensions --\
-    			X:%d Y:%d W:%d H:%d\n",x,y,width,height);
-        return TREE_ERROR;
-    }
-
-    if(NW){
-    	QT_ERR a = NW->VerifyTree();
-        if(a != NO_ERROR) return a;
-    }
-    if(NE){
-        QT_ERR b = NE->VerifyTree();
-        if(b != NO_ERROR) return b;
-    }
-    if(SW){
-        QT_ERR c = SW->VerifyTree();
-        if(c != NO_ERROR) return c;
-    }
-    if(SE){
-        QT_ERR d = SE->VerifyTree();
-        if(d != NO_ERROR) return d;
-    }
-
-    return NO_ERROR;
 }
 
 QT_ERR Quadtree::DrawTree(ofstream &out){
