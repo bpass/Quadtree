@@ -20,6 +20,7 @@
 #include <vector>
 #include <sys/time.h>
 #include "gdal_priv.h"
+#include "gdal.h"
 #include "ogr_spatialref.h"
 #include "cpl_conv.h"
 #include "cpl_string.h"
