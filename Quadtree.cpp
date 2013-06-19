@@ -211,13 +211,13 @@ QT_ERR Quadtree::Prune(){
 		if(NE) children.push_back(NE);
 		if(SE) children.push_back(SE);
 
-		for(uint i = 0; i < children.size(); i++){
+		for(int i = 0; i < children.size(); i++){
 			if( children[i]->Prune() != NO_ERROR )
 				return TREE_ERROR;
 		}
 
 		int val = children.front()->value;
-		for(uint i = 0; i < children.size(); i++){
+		for(int i = 0; i < children.size(); i++){
 			if(children[i]->value != val){
 				return NO_ERROR;
 			}
