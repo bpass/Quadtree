@@ -26,6 +26,7 @@
 #include "cpl_string.h"
 #include "assert.h"
 
+#define C 1
 #define DEBUG 1
 #define VERBOSE 0
 #define PRINTLINE() {fprintf(stderr,"**************************************************\n");}

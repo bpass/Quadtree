@@ -29,6 +29,24 @@ using namespace std;
  * \brief This will ask the user to input the necessary values.
  */
 void initialize();
+void initializeC();
+
+/**
+ * \brief Read in a GDAL formatted image.
+ */
+float** readImage(GDALDataset*);
+float** readImageC(GDALDatasetH);
+
+/**
+ * \brief Creates a GDAL supported file based on a given 2D array.
+ */
+QT_ERR createImage(GDALDataset*,float**,int,int,string);
+QT_ERR createImageC(GDALDatasetH, float**, int, int, string);
+
+/**
+ * \brief Dumps contents of data to a file.
+ */
+QT_ERR dumpToFile(float**,int, int, string);
 
 /**
  * \brief Prints information about the dataset.
@@ -41,30 +59,15 @@ void printGDALDatasetInfo(GDALDataset*);
 void printGDALRasterInfo(GDALRasterBand*);
 
 /**
- * \brief A typical implementation of quicksort.
- */
-void sortNodes(Node[],int, int);
-
-/**
  * \brief This function reads the file that holds the output data
  *             and recreates the original image using the data.
  */
 float** readNodeFile(string);
 
 /**
- * \brief Read in a GDAL formatted image.
+ * \brief A typical implementation of quicksort.
  */
-float** readImage(GDALDataset*);
-
-/**
- * \brief Dumps contents of data to a file.
- */
-QT_ERR dumpToFile(float**,int, int, string);
-
-/**
- * \brief Creates a GDAL supported file based on a given 2D array.
- */
-QT_ERR createImage(GDALDataset*,float**,int,int,string);
+void sortNodes(Node[],int, int);
 
 /**
  * \brief This will create a DOT file.

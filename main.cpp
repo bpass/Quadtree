@@ -14,6 +14,8 @@ float**     	raster_data;
 int         	xsize = 0;
 int         	ysize = 0;
 
+GDALDatasetH hDataset;
+
 /* TIMING STUFF */
 timeval stop, start;
 long times[] = {0,0,0,0,0,0};
@@ -29,9 +31,14 @@ int main(){
 	/* Original tree part */
 
 	initialize();
+	//initializeC();
+
 	//colorTable = dataIn->GetRasterBand(1)->GetColorTable();
 	gettimeofday(&start, NULL);
+
 	raster_data = readImage(dataIn);
+	//raster_data = readImageC(hDataset);
+
 	gettimeofday(&stop, NULL);
 	temp = stop.tv_usec - start.tv_usec;
 	if(temp < 0) temp = 1000000 - temp;
@@ -40,6 +47,7 @@ int main(){
 	assert(raster_data!=NULL);
 
 	createImage(dataIn,raster_data,xsize,ysize,"Results\/testimg1.img");
+	//createImageC(hDataset,raster_data,xsize,ysize,"Results\/testimg1.img");
 
 	gettimeofday(&start, NULL);
 	original_tree = Quadtree::constructTree(raster_data,xsize,ysize);
@@ -61,6 +69,7 @@ int main(){
 	float** newimg2 = original_tree->RebuildImage();
 
 	createImage(dataIn,newimg2,xsize,ysize,"Results\/testimg2.img");
+	//createImageC(hDataset,newimg2,xsize,ysize,"Results\/testimg2.img");
 
 	gettimeofday(&start, NULL);
 	original_tree->Prune();
@@ -126,9 +135,22 @@ void initialize(){
         cerr << "Error: Opening image \"" << inimgfn.c_str() << "\", leaving program\n";
         exit(1);
     }
-
     xsize = dataIn->GetRasterXSize();
     ysize = dataIn->GetRasterYSize();
+}
+
+void initializeC(){
+	fprintf(stderr,"Initialization\n");
+
+    GDALAllRegister();
+
+    hDataset = GDALOpen(inimgfn.c_str(),GA_ReadOnly);
+    if(!hDataset){
+    	cerr << "Error opening hDataset\n";
+    	exit(1);
+    }
+    xsize = GDALGetRasterXSize(hDataset);
+    ysize = GDALGetRasterYSize(hDataset);
 }
 
 /*
@@ -201,6 +223,48 @@ float** readNodeFile(string filename){
 
 }
 
+float** readImageC(GDALDatasetH gdalData){
+
+	fprintf(stderr,"Reading image from dataset\n");
+
+    int i,j,x,y;
+    float *pafScanline;
+    float** myData;
+
+    GDALRasterBandH gdalBand = GDALGetRasterBand(gdalData,1);
+
+    if(gdalBand == NULL){
+    	cerr << "error null band\n"; exit(1);
+    }
+    if( !gdalBand ){
+        cerr << "Error fetching raster band\n";
+        return NULL;
+    }
+
+    x = GDALGetRasterXSize(gdalBand);
+    y = GDALGetRasterYSize(gdalBand);
+
+    myData = new float*[x];
+    for(i=0;i<x;i++) myData[i] = new float[y];
+
+    pafScanline = new float[xsize*ysize];
+
+    for(i=0;i<x;i++)
+        for(j=0;j<y;j++)
+            myData[i][j] = emptyValue;
+
+    GDALRasterIO(gdalData,GF_Read,0,0,x,y,
+    		pafScanline,x,y,GDT_Float32,0,0);
+
+    for(j=0;j<y;++j)
+        for(int k=0;k<x;++k)
+            myData[k][j] = pafScanline[j*x+k];
+
+    delete [] pafScanline;
+
+    return myData;
+}
+
 float** readImage(GDALDataset* gdalData){
 
 	fprintf(stderr,"Reading image from dataset\n");
@@ -239,6 +303,49 @@ float** readImage(GDALDataset* gdalData){
     return myData;
 }
 
+QT_ERR createImageC(GDALDatasetH poSrcDS, float** data, int w, int h, string fname){
+
+	fprintf(stderr,"Creating GDAL image %s\n",fname.c_str());
+	GDALDriverH gdalDriver = GDALGetDriverByName(outformat);
+    if( gdalDriver == NULL ) return READ_ERROR;
+
+    char **gdalMetadata = GDALGetMetadata( gdalDriver , NULL );
+
+    if( !CSLFetchBoolean( gdalMetadata, GDAL_DCAP_CREATECOPY, FALSE ) ){
+        printf( "Driver %s does not support CreateCopy() method."
+                "\nCannot create image.\n", outformat );
+        return WRITE_ERROR;
+    }
+
+    GDALDatasetH poDstDS = GDALCreateCopy(gdalDriver,
+    									fname.c_str(),
+    									poSrcDS,
+    									FALSE,
+    									NULL,
+    									NULL,
+    									NULL
+    									);
+
+
+    GDALRasterBandH band = GDALGetRasterBand(poDstDS,1);
+
+    for (int i=0; i<w; ++i) {
+
+    		GDALRasterIO(band,
+    					 GF_Write,
+    					 i,0,
+    					 1,h,
+    					 data[i],
+    					 1,h,
+    					 GDT_Float32,
+    					 0,0);
+    }
+
+    GDALClose( poDstDS );
+
+    return NO_ERROR;
+}
+
 QT_ERR createImage(GDALDataset* poSrcDS, float** data,int w,int h,string fname){
 
 	fprintf(stderr,"Creating GDAL image %s\n",fname.c_str());
@@ -261,6 +368,7 @@ QT_ERR createImage(GDALDataset* poSrcDS, float** data,int w,int h,string fname){
                                     NULL,
                                     NULL
                                     );
+
 
     GDALRasterBand* band = poDstDS->GetRasterBand(1);
 
